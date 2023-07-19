@@ -31,13 +31,15 @@ source=("$pkgname-$pkgver.tar.gz::https://github.com/tensorflow/tensorflow/archi
         tensorflow-2.10-sparse-transpose-op2.patch
         https://github.com/bazelbuild/bazel/releases/download/5.4.0/bazel_nojdk-5.4.0-linux-x86_64
         fix-c++17-compat.patch
-        rocm_configure.bzl.patch)
+        rocm_configure.bzl.patch
+        rocm_configure-Add-llvm-16-include-path.patch)
 
 sha512sums=('b243ef9ded002faf8127fedb74e7e60685a0fc636790a9616fbb67a1e902d45b28f044f3da58d7febde1c5bd13a9578a0a463db24b2f2f06daf558cc7eadfec4'
             '45325ef3130aa95d48121d8c39bb4e683bdb5faa936ff29af953a2c359edb441a29e2dc0cae53ec6c08eee0432c0eeeaa7a40fbd063467b7f3c250d0f7f8ffed'
             'e2adb747cd1fe3c90686831703618af3f8bc8197a96d9e1e90e66db38dbc4e7a94d88dac755b25e288002983a87fcffbfb0d7c2e356d979d4635301c3daf9281'
             'f682368bb47b2b022a51aa77345dfa30f3b0d7911c56515d428b8326ee3751242f375f4e715a37bb723ef20a86916dad9871c3c81b1b58da85e1ca202bc4901e'
-            '572615399558cfb59e3d4311864ca6349f2fd039ddce6f85d85f24d52858f6705df320891730fd4114e7ef81e53b67cc9e03bd871c47ee640693460fb0e490ea')
+            '572615399558cfb59e3d4311864ca6349f2fd039ddce6f85d85f24d52858f6705df320891730fd4114e7ef81e53b67cc9e03bd871c47ee640693460fb0e490ea'
+            '44c53791b028e7322e659bc98a654a7cc91e5a6ee68506dbf18db45df95d5fc01c1b8930dd6e642cfb6836f81f0234c737494ccf22457c6cf9a48d5f893eaa61')
 
 # consolidate common dependencies to prevent mishaps
 _common_py_depends=(python-termcolor python-astor python-gast03 python-numpy python-protobuf
@@ -90,6 +92,8 @@ prepare() {
   patch -Np1 -i "${srcdir}/tensorflow-2.10-sparse-transpose-op2.patch" -d tensorflow-${_pkgver}
 
   patch -Np1 -i "${srcdir}/rocm_configure.bzl.patch" -d tensorflow-${_pkgver}
+
+  patch -Np1 -i "${srcdir}/rocm_configure-Add-llvm-16-include-path.patch" -d tensorflow-${_pkgver}
 
   cp -r tensorflow-${_pkgver} tensorflow-${_pkgver}-rocm
   cp -r tensorflow-${_pkgver} tensorflow-${_pkgver}-opt-rocm
