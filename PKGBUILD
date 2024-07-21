@@ -14,9 +14,9 @@ pkgname=()
 [ "$_build_no_opt" -eq 1 ] && pkgname+=(tensorflow-rocm python-tensorflow-rocm)
 [ "$_build_opt" -eq 1 ] && pkgname+=(tensorflow-opt-rocm python-tensorflow-opt-rocm)
 
-pkgver=2.15.0
-_pkgver=2.15.0
-pkgrel=8
+pkgver=2.17.0
+_pkgver=2.17.0
+pkgrel=1
 pkgdesc="Library for computation using data flow graphs for scalable machine learning"
 url="https://www.tensorflow.org/"
 license=('APACHE')
@@ -25,16 +25,16 @@ depends=('c-ares' 'pybind11' 'openssl' 'libpng' 'curl' 'giflib' 'icu' 'libjpeg-t
          'intel-oneapi-compiler-shared-runtime-libs')
 makedepends=('bazel' 'python-numpy' 'rocm-hip-sdk' 'roctracer' 'rccl' 'git' 'miopen' 'python-wheel' 'openmp'
              'python-installer' 'python-setuptools' 'python-h5py' 'python-keras-applications'
-             'python-keras-preprocessing' 'cython' 'patchelf' 'python-requests' 'libxcrypt-compat' 'clang'
-             'jdk11-openjdk')
+             'python-keras-preprocessing' 'cython' 'patchelf' 'python-requests' 'libxcrypt-compat' 'clang')
 optdepends=('tensorboard: Tensorflow visualization toolkit')
 source=("$pkgname-$pkgver.tar.gz::https://github.com/tensorflow/tensorflow/archive/v${_pkgver}.tar.gz"
-        https://github.com/bazelbuild/bazel/releases/download/6.1.0/bazel_nojdk-6.1.0-linux-x86_64
-        fix-c++17-compat.patch)
-
-sha512sums=('51976c7255ffbdb98fe67a28f6ae1c3b9a073e49fe6b44187a53d99654e4af753de53bfa7229cdd1997ac71e8ddecbc15e4759d46c6d24b55eb84c5d31523dfe'
-            'b71aed83ae1c3f610df77f7c148703fd3e7aa5901794a2b31c6044c71b3f030831d59f7f3641992105117a422655160fc9b509326b31586c6bca378cbff08762'
-            'f682368bb47b2b022a51aa77345dfa30f3b0d7911c56515d428b8326ee3751242f375f4e715a37bb723ef20a86916dad9871c3c81b1b58da85e1ca202bc4901e')
+        tensorflow-2.16.1-python-distutils-removal.patch
+        tensorflow-numpy2.patch
+        https://github.com/bazelbuild/bazel/releases/download/6.5.0/bazel_nojdk-6.5.0-linux-x86_64)
+sha512sums=('45061f075971cf2bc219a34b1cda2ee9851ba586e94046838e6e1fd26adcfb399d90e71e89a0f709d5282ff3be7cc3a82b81d62dce53db5010640ea41487a469'
+            'e4c44d2f5314b83d8ed404e5ec14960ef8b7df0c1a2a3e826f913a02c901f9fd0326f9014a602121e0fdb2f928d1459f8b8180455491a1f937ce84e12f6a7d3e'
+            'c4da1e72c90534a5a1f7625b819dc2529fa5b91c8423550ca4384ec243bddd026b977d5f81660114f054ce8f64cd90057f6482f89df4af443f35da1871202c1d'
+            'd3789f0ecd354468f2e24d98501041430ae99c173320fa9c3eb02f225c08ed298fd1ad259e4ad9bb70b6ae89d84cd87460aaa720de3486d40b30777a8fe45453')
 
 # consolidate common dependencies to prevent mishaps
 _common_py_depends=(python-termcolor python-astor python-gast python-numpy python-protobuf
@@ -70,10 +70,20 @@ check_dir() {
 prepare() {
   # Since Tensorflow is currently imcompatible with our version of Bazel, we're going to use
   # their exact version of Bazel to fix that. Stupid problems call for stupid solutions.
-  install -Dm755 "${srcdir}"/bazel_nojdk-6.1.0-linux-x86_64 bazel/bazel
-  PATH="/usr/lib/jvm/java-11-openjdk/bin:$PATH"
+  install -Dm755 "${srcdir}"/bazel_nojdk-6.5.0-linux-x86_64 bazel/bazel
   export PATH="${srcdir}/bazel:$PATH"
   bazel --version
+
+  # Python 3.12 removed the distutils module
+  # https://gitlab.archlinux.org/archlinux/packaging/packages/tensorflow/-/issues/7
+  # patch -Np1 -i ../tensorflow-numpy2.patch -d tensorflow-${_pkgver}
+  # cd tensorflow-${_pkgver}/ci/official/requirements_updater
+  # ./updater.sh
+  # cd -
+
+  # Python 3.12 removed the distutils module
+  # https://gitlab.archlinux.org/archlinux/packaging/packages/tensorflow/-/issues/7
+  patch -Np1 -i ../tensorflow-2.16.1-python-distutils-removal.patch -d tensorflow-${_pkgver}
 
   # Get rid of hardcoded versions. Not like we ever cared about what upstream
   # thinks about which versions should be used anyway. ;) (FS#68772)
@@ -132,7 +142,7 @@ prepare() {
   export PYTHON_BIN_PATH=/usr/bin/python$(get_pyver)
   export USE_DEFAULT_PYTHON_LIB_PATH=1
 
-  export BAZEL_ARGS="--config=mkl -c opt"
+  export BAZEL_ARGS="-c opt --verbose_failures --config=verbose_logs --copt=-Wno-gnu-offsetof-extensions"
 }
 
 build() {
@@ -144,31 +154,31 @@ build() {
     export TF_NEED_ROCM=1
     ./configure
     bazel \
-      build \
+      build --config=rocm \
         ${BAZEL_ARGS[@]} \
         //tensorflow:libtensorflow.so \
         //tensorflow:libtensorflow_cc.so \
+        //tensorflow:libtensorflow_framework.so \
         //tensorflow:install_headers \
-        //tensorflow/tools/pip_package:build_pip_package
-    bazel-bin/tensorflow/tools/pip_package/build_pip_package --src "${srcdir}"/tmprocm-src --dst "${srcdir}"/tmprocm --rocm
+        //tensorflow/tools/pip_package:wheel --repo_env=WHEEL_NAME=tensorflow
   fi
 
 
   if [ "$_build_opt" -eq 1 ]; then
     echo "Building with rocm and with non-x86-64 optimizations"
     cd "${srcdir}"/tensorflow-${_pkgver}-opt-rocm
-    export CC_OPT_FLAGS="-march=haswell -O3"
+    export CC_OPT_FLAGS="-march=haswell -O2"
     export TF_NEED_CUDA=0
     export TF_NEED_ROCM=1
     ./configure
     bazel \
-      build --config=avx_linux \
+      build --config=opt --config=avx_linux --config=rocm \
         ${BAZEL_ARGS[@]} \
         //tensorflow:libtensorflow.so \
         //tensorflow:libtensorflow_cc.so \
+        //tensorflow:libtensorflow_framework.so \
         //tensorflow:install_headers \
-        //tensorflow/tools/pip_package:build_pip_package
-    bazel-bin/tensorflow/tools/pip_package/build_pip_package --src "${srcdir}"/tmpoptrocm-src --dst "${srcdir}"/tmpoptrocm --rocm
+        //tensorflow/tools/pip_package:wheel --repo-env=WHEEL_NAME=tensorflow
   fi
 }
 
@@ -178,7 +188,7 @@ _package() {
   cp -r bazel-bin/tensorflow/include/* "${pkgdir}"/usr/include/tensorflow/
 
   # install python-version to get all extra headers
-  WHEEL_PACKAGE=$(find "${srcdir}"/$1 -name "tensor*.whl")
+  WHEEL_PACKAGE=$(find -L bazel-out -name "tensor*.whl")
   python -m installer --destdir="$pkgdir" $WHEEL_PACKAGE
 
   # move extra headers to correct location
@@ -199,29 +209,25 @@ _package() {
     ldd "${_so_file}" &>/dev/null && rm -rf "${_so_file}"
   done
 
-  # install the rest of tensorflow
+  # pkgconfig
   tensorflow/c/generate-pc.sh --prefix=/usr --version=${pkgver}
   sed -e 's@/include$@/include/tensorflow@' -i tensorflow.pc -i tensorflow_cc.pc
   install -Dm644 tensorflow.pc "${pkgdir}"/usr/lib/pkgconfig/tensorflow.pc
   install -Dm644 tensorflow_cc.pc "${pkgdir}"/usr/lib/pkgconfig/tensorflow_cc.pc
-  install -Dm755 bazel-bin/tensorflow/libtensorflow.so "${pkgdir}"/usr/lib/libtensorflow.so.${pkgver}
-  ln -s libtensorflow.so.${pkgver} "${pkgdir}"/usr/lib/libtensorflow.so.${pkgver:0:1}
-  ln -s libtensorflow.so.${pkgver:0:1} "${pkgdir}"/usr/lib/libtensorflow.so
-  install -Dm755 bazel-bin/tensorflow/libtensorflow_cc.so "${pkgdir}"/usr/lib/libtensorflow_cc.so.${pkgver}
-  ln -s libtensorflow_cc.so.${pkgver} "${pkgdir}"/usr/lib/libtensorflow_cc.so.${pkgver:0:1}
-  ln -s libtensorflow_cc.so.${pkgver:0:1} "${pkgdir}"/usr/lib/libtensorflow_cc.so
-  install -Dm755 bazel-bin/tensorflow/libtensorflow_framework.so "${pkgdir}"/usr/lib/libtensorflow_framework.so.${pkgver}
-  ln -s libtensorflow_framework.so.${pkgver} "${pkgdir}"/usr/lib/libtensorflow_framework.so.${pkgver:0:1}
-  ln -s libtensorflow_framework.so.${pkgver:0:1} "${pkgdir}"/usr/lib/libtensorflow_framework.so
-  install -Dm644 tensorflow/c/c_api.h "${pkgdir}"/usr/include/tensorflow/tensorflow/c/c_api.h
-  install -Dm644 LICENSE "${pkgdir}"/usr/share/licenses/${pkgname}/LICENSE
 
-  # Fix interoperability of C++14 and C++17. See https://bugs.archlinux.org/task/65953
-  patch -Np0 -i "${srcdir}"/fix-c++17-compat.patch -d "${pkgdir}"/usr/include/tensorflow/absl/base
+  # .so files
+  rm bazel-bin/tensorflow/*.params
+  cp -P bazel-bin/tensorflow/*.so* "${pkgdir}"/usr/lib
+
+  # C API headers
+  install -Dm644 tensorflow/c/c_api.h "${pkgdir}"/usr/include/tensorflow/tensorflow/c/c_api.h
+
+  # license
+  install -Dm644 LICENSE "${pkgdir}"/usr/share/licenses/${pkgname}/LICENSE
 }
 
 _python_package() {
-  WHEEL_PACKAGE=$(find "${srcdir}"/$1 -name "tensor*.whl")
+  WHEEL_PACKAGE=$(find -L bazel-ouot -name "tensor*.whl")
   python -m installer --destdir="$pkgdir" $WHEEL_PACKAGE
 
   # create symlinks to headers
@@ -236,7 +242,7 @@ _python_package() {
   # tensorboard has been separated from upstream but they still install it with
   # tensorflow. I don't know what kind of sense that makes but we have to clean
   # it out from this pacakge.
-  rm -rf "${pkgdir}"/usr/bin/tensorboard
+  rm -r "${pkgdir}"/usr/bin/tensorboard
 
   install -Dm644 LICENSE "${pkgdir}"/usr/share/licenses/${pkgname}/LICENSE
 }
@@ -248,7 +254,7 @@ package_tensorflow-rocm() {
   provides=(tensorflow)
 
   cd "${srcdir}"/tensorflow-${_pkgver}-rocm
-  _package tmprocm
+  _package
 }
 
 package_tensorflow-opt-rocm() {
@@ -258,7 +264,7 @@ package_tensorflow-opt-rocm() {
   provides=(tensorflow tensorflow-rocm)
 
   cd "${srcdir}"/tensorflow-${_pkgver}-opt-rocm
-  _package tmpoptrocm
+  _package
 }
 
 package_python-tensorflow-rocm() {
@@ -268,7 +274,7 @@ package_python-tensorflow-rocm() {
   provides=(python-tensorflow)
 
   cd "${srcdir}"/tensorflow-${_pkgver}-rocm
-  _python_package tmprocm
+  _python_package
 }
 
 package_python-tensorflow-opt-rocm() {
@@ -278,7 +284,8 @@ package_python-tensorflow-opt-rocm() {
   provides=(python-tensorflow python-tensorflow-rocm)
 
   cd "${srcdir}"/tensorflow-${_pkgver}-opt-rocm
-  _python_package tmpoptrocm
+  _python_package
 }
 
 # vim:set ts=2 sw=2 et:
+
