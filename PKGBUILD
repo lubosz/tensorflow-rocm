@@ -26,7 +26,7 @@ depends=('c-ares' 'pybind11' 'openssl' 'libpng' 'curl' 'giflib' 'icu' 'libjpeg-t
          'intel-oneapi-compiler-shared-runtime-libs')
 makedepends=('bazel' 'python-numpy' 'rocm-hip-sdk' 'roctracer' 'rccl' 'git' 'miopen' 'python-wheel' 'openmp'
              'python-installer' 'python-setuptools' 'python-h5py' 'python-keras-applications'
-             'python-keras-preprocessing' 'cython' 'patchelf' 'python-requests' 'libxcrypt-compat' 'clang')
+             'python-keras-preprocessing' 'cython' 'patchelf' 'python-requests' 'libxcrypt-compat' 'clang20')
 optdepends=('tensorboard: Tensorflow visualization toolkit')
 source=("$pkgname-$pkgver.tar.gz::https://github.com/tensorflow/tensorflow/archive/v${_pkgver}.tar.gz"
         https://github.com/bazelbuild/bazel/releases/download/7.4.1/bazel_nojdk-7.4.1-linux-x86_64
@@ -129,7 +129,7 @@ prepare() {
   # See: https://github.com/tensorflow/tensorflow/commit/c04822a49d669f2d74a566063852243d993e18b1
   # export TF_ROCM_AMDGPU_TARGETS=gfx803,gfx900,gfx906,gfx908,gfx90a,gfx1030,gfx1100,gfx1101,gfx1102
   export TF_NEED_CLANG=1
-  export CLANG_COMPILER_PATH=/usr/bin/clang
+  export CLANG_COMPILER_PATH=/usr/lib/llvm20/bin/clang
   # See https://github.com/tensorflow/tensorflow/blob/master/third_party/systemlibs/syslibs_configure.bzl
   export TF_SYSTEM_LIBS="boringssl,curl,cython,gif,icu,libjpeg_turbo,nasm,png,zlib"
   export TF_SET_ANDROID_WORKSPACE=0
