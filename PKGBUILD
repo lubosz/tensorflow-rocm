@@ -44,10 +44,9 @@ sha512sums=('e1e27c84491a28dc5b7deb181de0fbad27ddd58cdd7ee2f6815bebd26d7ff400a94
             'cfb1eced1f4b4534deddf14b73d45ae4f8104264ccada1a8854e0dbf7ef2a2f28e67930348211541630a102994ad258d55804359448d225863c4bd5c8762fff1')
 
 # consolidate common dependencies to prevent mishaps
-_common_py_depends=(python-termcolor python-astor python-gast python-numpy python-protobuf
-                    absl-py python-h5py python-keras python-keras-applications python-keras-preprocessing
-                    python-tensorflow-estimator python-opt_einsum python-astunparse python-pasta
-                    python-flatbuffers python-typing_extensions python-ml-dtypes)
+_common_py_depends=(python-termcolor python-astor python-gast python-numpy python-protobuf absl-py
+                    python-h5py python-keras python-opt_einsum python-wrapt
+                    python-astunparse python-pasta python-flatbuffers python-typing_extensions python-ml-dtypes)
 
 get_pyver () {
   python -c 'import sys; print(str(sys.version_info[0]) + "." + str(sys.version_info[1]))'
