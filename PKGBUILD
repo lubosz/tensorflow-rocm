@@ -134,7 +134,7 @@ prepare() {
   export TF_NEED_CLANG=1
   export CLANG_COMPILER_PATH=/usr/lib/llvm20/bin/clang
   # See https://github.com/tensorflow/tensorflow/blob/master/third_party/systemlibs/syslibs_configure.bzl
-  export TF_SYSTEM_LIBS="boringssl,curl,cython,gif,icu,libjpeg_turbo,nasm,png,zlib"
+  # export TF_SYSTEM_LIBS="boringssl,curl,cython,gif,icu,libjpeg_turbo,nasm,png,zlib"
   export TF_SET_ANDROID_WORKSPACE=0
   export TF_DOWNLOAD_CLANG=0
   # export TF_NCCL_VERSION=$(pkg-config nccl --modversion | grep -Po '\d+\.\d+')
@@ -160,7 +160,7 @@ prepare() {
   export PYTHON_BIN_PATH=/usr/bin/python$(get_pyver)
   export USE_DEFAULT_PYTHON_LIB_PATH=1
 
-  export BAZEL_ARGS="-c opt --verbose_failures --config=verbose_logs --copt=-Wno-gnu-offsetof-extensions"
+  export BAZEL_ARGS="-c opt --verbose_failures --config=verbose_logs --copt=-Wno-c23-extensions"
 }
 
 build() {
@@ -177,7 +177,6 @@ build() {
         //tensorflow:libtensorflow.so \
         //tensorflow:libtensorflow_cc.so \
         //tensorflow:libtensorflow_framework.so \
-        //tensorflow:install_headers \
         //tensorflow/tools/pip_package:wheel --repo_env=WHEEL_NAME=tensorflow
   fi
 
@@ -185,7 +184,7 @@ build() {
   if [ "$_build_opt" -eq 1 ]; then
     echo "Building with rocm and with non-x86-64 optimizations"
     cd "${srcdir}"/tensorflow-${_pkgver}-opt-rocm
-    export CC_OPT_FLAGS="-march=haswell -O2"
+    export CC_OPT_FLAGS="-march=x86-64-v3 -O2"
     export TF_NEED_CUDA=0
     export TF_NEED_ROCM=1
     ./configure
@@ -195,7 +194,6 @@ build() {
         //tensorflow:libtensorflow.so \
         //tensorflow:libtensorflow_cc.so \
         //tensorflow:libtensorflow_framework.so \
-        //tensorflow:install_headers \
         //tensorflow/tools/pip_package:wheel --repo-env=WHEEL_NAME=tensorflow
   fi
 }
@@ -203,7 +201,8 @@ build() {
 _package() {
   # install headers first
   install -d "${pkgdir}"/usr/include/tensorflow
-  cp -r bazel-bin/tensorflow/include/* "${pkgdir}"/usr/include/tensorflow/
+  # NOTE: the bazel target //tensorflow:install_headers does not work
+  # cp -r bazel-bin/tensorflow/include/* "${pkgdir}"/usr/include/tensorflow/
 
   # install python-version to get all extra headers
   WHEEL_PACKAGE=$(find -L bazel-out -name "tensor*.whl")
@@ -237,9 +236,6 @@ _package() {
   rm bazel-bin/tensorflow/*.params
   cp -P bazel-bin/tensorflow/*.so* "${pkgdir}"/usr/lib
 
-  # C API headers
-  install -Dm644 tensorflow/c/c_api.h "${pkgdir}"/usr/include/tensorflow/tensorflow/c/c_api.h
-
   # license
   install -Dm644 LICENSE "${pkgdir}"/usr/share/licenses/${pkgname}/LICENSE
 }
@@ -248,18 +244,9 @@ _python_package() {
   WHEEL_PACKAGE=$(find -L bazel-ouot -name "tensor*.whl")
   python -m installer --destdir="$pkgdir" $WHEEL_PACKAGE
 
-  # create symlinks to headers
-  local _srch_path="${pkgdir}/usr/lib/python$(get_pyver)"/site-packages/tensorflow/include/
-  check_dir "${_srch_path}"  # we need to quit on broken search paths
-  find "${_srch_path}" -maxdepth 1 -mindepth 1 -type d -print0 | while read -rd $'\0' _folder; do
-    rm -rf "${_folder}"
-    _smlink="$(basename "${_folder}")"
-    ln -s /usr/include/tensorflow/"${_smlink}" "${_srch_path}"
-  done
-
   # tensorboard has been separated from upstream but they still install it with
   # tensorflow. I don't know what kind of sense that makes but we have to clean
-  # it out from this pacakge.
+  # it out from this package.
   rm -r "${pkgdir}"/usr/bin/tensorboard
 
   install -Dm644 LICENSE "${pkgdir}"/usr/share/licenses/${pkgname}/LICENSE
