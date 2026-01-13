@@ -131,7 +131,7 @@ prepare() {
   export TF_NEED_CLANG=1
   export CLANG_COMPILER_PATH=/usr/lib/llvm20/bin/clang
   # See https://github.com/tensorflow/tensorflow/blob/master/third_party/systemlibs/syslibs_configure.bzl
-  export TF_SYSTEM_LIBS="boringssl,curl,cython,gif,icu,libjpeg_turbo,nasm,png,zlib"
+  # export TF_SYSTEM_LIBS="boringssl,curl,cython,gif,icu,libjpeg_turbo,nasm,png,zlib"
   export TF_SET_ANDROID_WORKSPACE=0
   export TF_DOWNLOAD_CLANG=0
   # export TF_NCCL_VERSION=$(pkg-config nccl --modversion | grep -Po '\d+\.\d+')
@@ -157,7 +157,7 @@ prepare() {
   export PYTHON_BIN_PATH=/usr/bin/python$(get_pyver)
   export USE_DEFAULT_PYTHON_LIB_PATH=1
 
-  export BAZEL_ARGS="-c opt --verbose_failures --config=verbose_logs --copt=-Wno-gnu-offsetof-extensions"
+  export BAZEL_ARGS="-c opt --verbose_failures --config=verbose_logs --copt=-Wno-c23-extensions"
 }
 
 build() {
