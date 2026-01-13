@@ -94,6 +94,16 @@ prepare() {
   # thinks about which versions should be used anyway. ;) (FS#68772)
   sed -i -E "s/'([0-9a-z_-]+) .= [0-9].+[0-9]'/'\1'/" tensorflow-${_pkgver}/tensorflow/tools/pip_package/setup.py.tpl
 
+  # building the C/C++ interface requires more work but we cannot build tensorflow and python-tensorflow together
+  # https://gitlab.archlinux.org/archlinux/packaging/packages/tensorflow/-/issues/25
+
+  # Disable PYWRAP_RULES to let the libtensorflow.so etc. targets be found
+  sed -i '/build --repo_env=USE_PYWRAP_RULES=True/d' tensorflow-${_pkgver}/.bazelrc tensorflow-${_pkgver}/third_party/xla/tensorflow.bazelrc
+
+  # Patch protobuf dependencies in bazel
+  # https://gitlab.archlinux.org/archlinux/packaging/packages/tensorflow/-/issues/24#note_334439
+  patch -Np1 -i ../protobuf-deps.patch -d tensorflow-${_pkgver}
+
   cp -r tensorflow-${_pkgver} tensorflow-${_pkgver}-rocm
   cp -r tensorflow-${_pkgver} tensorflow-${_pkgver}-opt-rocm
 
