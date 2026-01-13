@@ -144,7 +144,7 @@ prepare() {
   export HOST_C_COMPILER=/usr/bin/${CC}
   export HOST_CXX_COMPILER=/usr/bin/${CXX}
   export TF_CUDA_CLANG=0  # Clang currently disabled because it's not compatible at the moment.
-  export CLANG_CUDA_COMPILER_PATH=/usr/bin/clang
+  export CLANG_CUDA_COMPILER_PATH=/usr/lib/llvm20/bin/clang
   export TF_CUDA_PATHS=/opt/cuda,/usr/lib,/usr
   export TF_CUDA_VERSION=$(/opt/cuda/bin/nvcc --version | sed -n 's/^.*release \(.*\),.*/\1/p')
   export TF_CUDNN_VERSION=$(sed -n 's/^#define CUDNN_MAJOR\s*\(.*\).*/\1/p' /usr/include/cudnn_version.h)
