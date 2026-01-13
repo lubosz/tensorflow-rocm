@@ -29,13 +29,19 @@ makedepends=('bazel' 'python-numpy' 'rocm-hip-sdk' 'roctracer' 'rccl' 'git' 'mio
              'python-keras-preprocessing' 'cython' 'patchelf' 'python-requests' 'libxcrypt-compat' 'clang')
 optdepends=('tensorboard: Tensorflow visualization toolkit')
 source=("$pkgname-$pkgver.tar.gz::https://github.com/tensorflow/tensorflow/archive/v${_pkgver}.tar.gz"
-        tensorflow-2.16.1-python-distutils-removal.patch
-        tensorflow-numpy2.patch
-        https://github.com/bazelbuild/bazel/releases/download/6.5.0/bazel_nojdk-6.5.0-linux-x86_64)
+        https://github.com/bazelbuild/bazel/releases/download/7.4.1/bazel_nojdk-7.4.1-linux-x86_64
+        tensorflow-2.19.0-tf-runtime-workspace.patch
+        tf-runtime-forward-decls.patch
+        tensorflow-2.19.0-matmul-it-unused-result.patch
+        protobuf-deps.patch
+        tensorflow-2.20.0-python-3.14.patch)
 sha512sums=('e1e27c84491a28dc5b7deb181de0fbad27ddd58cdd7ee2f6815bebd26d7ff400a94efea52eb7da344702adcd9181a474a76dc9e94d2ad7d6511d261deffa0cf5'
-            'e4c44d2f5314b83d8ed404e5ec14960ef8b7df0c1a2a3e826f913a02c901f9fd0326f9014a602121e0fdb2f928d1459f8b8180455491a1f937ce84e12f6a7d3e'
-            'c4da1e72c90534a5a1f7625b819dc2529fa5b91c8423550ca4384ec243bddd026b977d5f81660114f054ce8f64cd90057f6482f89df4af443f35da1871202c1d'
-            'd3789f0ecd354468f2e24d98501041430ae99c173320fa9c3eb02f225c08ed298fd1ad259e4ad9bb70b6ae89d84cd87460aaa720de3486d40b30777a8fe45453')
+            'ca01422266ed741a7d2ec1fdaba8fed8aa1d1ca4d53e45345225403cb132dc56266fd799351e80aeb50df6f2f4e29e6e0dc9430aef882d749425e8521ba0a806'
+            '27a07c1f5ab3898e049717e3f56498577c62840416b425e582a308d22112c0341b26a69d419daa0f80fac5be53cee122122b1b8200fc885ae5f7346b8e3ecb10'
+            'b3ac22ede074decdb751adbc8f0324f4b729ffb4927fddcc67250e2f2a2812d2ed6ff515ed98cb3eaf5c1e4b755d6b780f5515181b6f10f046dbaa91e0eb1964'
+            'e5856d277edcef6ab655e8b641f1ec8fe9823264221d687c9938bb00d5acee626a2a05b46cfd97fbad8551f270332ed09b73848bf9784137317fee47ad64c80e'
+            '5a90a66ea6b78196aaa8852f90ac2af82cfac12b4f7eefa9b1e04ff0fbefd4fdc82f9705f77634efe76c55d5e1804cdfd736dd8ceb875d7ce2757552467a04dd'
+            'cfb1eced1f4b4534deddf14b73d45ae4f8104264ccada1a8854e0dbf7ef2a2f28e67930348211541630a102994ad258d55804359448d225863c4bd5c8762fff1')
 
 # consolidate common dependencies to prevent mishaps
 _common_py_depends=(python-termcolor python-astor python-gast python-numpy python-protobuf
@@ -69,26 +75,35 @@ check_dir() {
 }
 
 prepare() {
-  # Since Tensorflow is currently imcompatible with our version of Bazel, we're going to use
+  # Since Tensorflow is currently incompatible with our version of Bazel, we're going to use
   # their exact version of Bazel to fix that. Stupid problems call for stupid solutions.
-  install -Dm755 "${srcdir}"/bazel_nojdk-6.5.0-linux-x86_64 bazel/bazel
+  install -Dm755 "${srcdir}"/bazel_nojdk-7.4.1-linux-x86_64 bazel/bazel
   export PATH="${srcdir}/bazel:$PATH"
   bazel --version
 
-  # Python 3.12 removed the distutils module
-  # https://gitlab.archlinux.org/archlinux/packaging/packages/tensorflow/-/issues/7
-  # patch -Np1 -i ../tensorflow-numpy2.patch -d tensorflow-${_pkgver}
-  # cd tensorflow-${_pkgver}/ci/official/requirements_updater
-  # ./updater.sh
-  # cd -
+  # Custom patch for python 3.14 support
+  patch -Np1 -i ../tensorflow-2.20.0-python-3.14.patch -d tensorflow-${_pkgver}
 
-  # Python 3.12 removed the distutils module
-  # https://gitlab.archlinux.org/archlinux/packaging/packages/tensorflow/-/issues/7
-  patch -Np1 -i ../tensorflow-2.16.1-python-distutils-removal.patch -d tensorflow-${_pkgver}
+  # Custom patch for the @tf_runtime external dependency
+  patch -Np1 -i ../tensorflow-2.19.0-tf-runtime-workspace.patch -d tensorflow-${_pkgver}
+  cp tf-runtime-forward-decls.patch tensorflow-${_pkgver}/third_party/tf_runtime/forward_decls.patch
+
+  # Custom patch for error: ignoring return value of function declared with 'nodiscard' attribute [-Werror,-Wunused-result]
+  patch -Np1 -i ../tensorflow-2.19.0-matmul-it-unused-result.patch -d tensorflow-${_pkgver}
 
   # Get rid of hardcoded versions. Not like we ever cared about what upstream
   # thinks about which versions should be used anyway. ;) (FS#68772)
-  sed -i -E "s/'([0-9a-z_-]+) .= [0-9].+[0-9]'/'\1'/" tensorflow-${_pkgver}/tensorflow/tools/pip_package/setup.py
+  sed -i -E "s/'([0-9a-z_-]+) .= [0-9].+[0-9]'/'\1'/" tensorflow-${_pkgver}/tensorflow/tools/pip_package/setup.py.tpl
+
+  # building the C/C++ interface requires more work but we cannot build tensorflow and python-tensorflow together
+  # https://gitlab.archlinux.org/archlinux/packaging/packages/tensorflow/-/issues/25
+
+  # Disable PYWRAP_RULES to let the libtensorflow.so etc. targets be found
+  sed -i '/build --repo_env=USE_PYWRAP_RULES=True/d' tensorflow-${_pkgver}/.bazelrc tensorflow-${_pkgver}/third_party/xla/tensorflow.bazelrc
+
+  # Patch protobuf dependencies in bazel
+  # https://gitlab.archlinux.org/archlinux/packaging/packages/tensorflow/-/issues/24#note_334439
+  patch -Np1 -i ../protobuf-deps.patch -d tensorflow-${_pkgver}
 
   cp -r tensorflow-${_pkgver} tensorflow-${_pkgver}-rocm
   cp -r tensorflow-${_pkgver} tensorflow-${_pkgver}-opt-rocm
