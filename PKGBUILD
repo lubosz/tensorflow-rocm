@@ -105,6 +105,10 @@ prepare() {
   # Update hardcoded clang version to the most ancient we can find
   sed -i 's#/usr/lib/llvm-18/bin/clang#/usr/lib/llvm20/bin/clang#g' tensorflow-rocm/.bazelrc
 
+  # copy source for building python-tensorflow packages
+  cp -r tensorflow-rocm python-tensorflow-${_pkgver}-rocm
+  cp -r tensorflow-rocm python-tensorflow-${_pkgver}-opt-rocm
+
   # building the C/C++ interface requires more work but we cannot build tensorflow and python-tensorflow together
   # https://gitlab.archlinux.org/archlinux/packaging/packages/tensorflow/-/issues/25
 
@@ -165,7 +169,18 @@ prepare() {
 
 build() {
   if [ "$_build_no_opt" -eq 1 ]; then
-    echo "Building with rocm and without non-x86-64 optimizations"
+    echo "Building with Python and with rocm and without non-x86-64 optimizations"
+    cd "${srcdir}"/python-tensorflow-${_pkgver}-rocm
+    export CC_OPT_FLAGS="-march=x86-64"
+    export TF_NEED_CUDA=0
+    export TF_NEED_ROCM=1
+    ./configure
+    bazel \
+        build --config=rocm \
+        ${BAZEL_ARGS[@]} \
+        //tensorflow/tools/pip_package:wheel --repo_env=WHEEL_NAME=tensorflow
+
+    echo "Building without Python and with rocm and without non-x86-64 optimizations"
     cd "${srcdir}"/tensorflow-${_pkgver}-rocm
     export CC_OPT_FLAGS="-march=x86-64"
     export TF_NEED_CUDA=0
@@ -176,13 +191,23 @@ build() {
         ${BAZEL_ARGS[@]} \
         //tensorflow:libtensorflow.so \
         //tensorflow:libtensorflow_cc.so \
-        //tensorflow:libtensorflow_framework.so \
-        //tensorflow/tools/pip_package:wheel --repo_env=WHEEL_NAME=tensorflow
+        //tensorflow:libtensorflow_framework.so
   fi
 
 
   if [ "$_build_opt" -eq 1 ]; then
-    echo "Building with rocm and with non-x86-64 optimizations"
+    echo "Building with Python and with rocm and with non-x86-64 optimizations"
+    cd "${srcdir}"/python-tensorflow-${_pkgver}-opt-rocm
+    export CC_OPT_FLAGS="-march=x86-64-v3 -O2"
+    export TF_NEED_CUDA=0
+    export TF_NEED_ROCM=1
+    ./configure
+    bazel \
+        build --config=opt --config=avx_linux --config=rocm \
+        ${BAZEL_ARGS[@]} \
+        //tensorflow/tools/pip_package:wheel --repo_env=WHEEL_NAME=tensorflow
+
+    echo "Building without Python and with rocm and with non-x86-64 optimizations"
     cd "${srcdir}"/tensorflow-${_pkgver}-opt-rocm
     export CC_OPT_FLAGS="-march=x86-64-v3 -O2"
     export TF_NEED_CUDA=0
@@ -193,20 +218,21 @@ build() {
         ${BAZEL_ARGS[@]} \
         //tensorflow:libtensorflow.so \
         //tensorflow:libtensorflow_cc.so \
-        //tensorflow:libtensorflow_framework.so \
-        //tensorflow/tools/pip_package:wheel --repo_env=WHEEL_NAME=tensorflow
+        //tensorflow:libtensorflow_framework.so
   fi
 }
 
 _package() {
+  local python_build_dir="$1"
+
   # install headers first
   install -d "${pkgdir}"/usr/include/tensorflow
   # NOTE: the bazel target //tensorflow:install_headers does not work
   # cp -r bazel-bin/tensorflow/include/* "${pkgdir}"/usr/include/tensorflow/
 
   # install python-version to get all extra headers
-  WHEEL_PACKAGE=$(find -L bazel-out -name "tensor*.whl")
-  python -m installer --destdir="$pkgdir" $WHEEL_PACKAGE
+  local wheel_package=$(find -L "$python_build_dir"/bazel-out -name "tensor*.whl")
+  python -m installer --destdir="$pkgdir" $wheel_package
 
   # move extra headers to correct location
   local _srch_path="${pkgdir}/usr/lib/python$(get_pyver)"/site-packages/tensorflow/include
@@ -241,8 +267,8 @@ _package() {
 }
 
 _python_package() {
-  WHEEL_PACKAGE=$(find -L bazel-out -name "tensor*.whl")
-  python -m installer --destdir="$pkgdir" $WHEEL_PACKAGE
+  local wheel_package=$(find -L bazel-out -name "tensor*.whl")
+  python -m installer --destdir="$pkgdir" $wheel_package
 
   # tensorboard has been separated from upstream but they still install it with
   # tensorflow. I don't know what kind of sense that makes but we have to clean
@@ -259,7 +285,7 @@ package_tensorflow-rocm() {
   provides=(tensorflow)
 
   cd "${srcdir}"/tensorflow-${_pkgver}-rocm
-  _package
+  _package "${srcdir}"/python-tensorflow-${_pkgver}-rocm
 }
 
 package_tensorflow-opt-rocm() {
@@ -269,7 +295,7 @@ package_tensorflow-opt-rocm() {
   provides=(tensorflow tensorflow-rocm)
 
   cd "${srcdir}"/tensorflow-${_pkgver}-opt-rocm
-  _package
+  _package "${srcdir}"/python-tensorflow-${_pkgver}-opt-rocm
 }
 
 package_python-tensorflow-rocm() {
@@ -293,4 +319,3 @@ package_python-tensorflow-opt-rocm() {
 }
 
 # vim:set ts=2 sw=2 et:
-
