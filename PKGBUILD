@@ -182,7 +182,7 @@ build() {
   if [ "$_build_opt" -eq 1 ]; then
     echo "Building with rocm and with non-x86-64 optimizations"
     cd "${srcdir}"/tensorflow-${_pkgver}-opt-rocm
-    export CC_OPT_FLAGS="-march=haswell -O2"
+    export CC_OPT_FLAGS="-march=x86-64-v3 -O2"
     export TF_NEED_CUDA=0
     export TF_NEED_ROCM=1
     ./configure
