@@ -1,4 +1,5 @@
-# Maintainer: acxz <akashpatel2008 at yahoo dot com>
+# Maintainer: Lubosz Sarnecki <lubosz@gmail.com>
+# Contributor: acxz <akashpatel2008 at yahoo dot com>
 # Contributor: Sven-Hendrik Haase <svenstaro@archlinux.org>
 # Contributor: Konstantin Gizdov (kgizdov) <arch@kge.pw>
 # Contributor: Adria Arrufat (archdria) <adria.arrufat+AUR@protonmail.ch>
