@@ -173,7 +173,7 @@ build() {
     export TF_NEED_ROCM=1
     ./configure
     bazel \
-        build --config=rocm_clang --config=rocm_wheel \
+        build --config=rocm \
         ${BAZEL_ARGS[@]} \
         //tensorflow/tools/pip_package:wheel --repo_env=WHEEL_NAME=tensorflow
 
@@ -184,7 +184,7 @@ build() {
     export TF_NEED_ROCM=1
     ./configure
     bazel \
-      build --config=rocm_clang --config=rocm_wheel \
+      build --config=rocm \
         ${BAZEL_ARGS[@]} \
         //tensorflow:libtensorflow.so \
         //tensorflow:libtensorflow_cc.so \
@@ -194,7 +194,6 @@ build() {
 
 
   if [ "$_build_opt" -eq 1 ]; then
-
     echo "Building with Python and with rocm and with non-x86-64 optimizations"
     cd "${srcdir}"/python-tensorflow-${_pkgver}-opt-rocm
     export CC_OPT_FLAGS="-march=x86-64-v3 -O2"
@@ -202,7 +201,7 @@ build() {
     export TF_NEED_ROCM=1
     ./configure
     bazel \
-        build --config=opt --config=avx_linux --config=rocm_clang --config=rocm_wheel \
+        build --config=opt --config=avx_linux --config=rocm \
         ${BAZEL_ARGS[@]} \
         //tensorflow/tools/pip_package:wheel --repo_env=WHEEL_NAME=tensorflow
 
@@ -213,7 +212,7 @@ build() {
     export TF_NEED_ROCM=1
     ./configure
     bazel \
-      build --config=opt --config=avx_linux --config=rocm_clang --config=rocm_wheel \
+      build --config=opt --config=avx_linux --config=rocm \
         ${BAZEL_ARGS[@]} \
         //tensorflow:libtensorflow.so \
         //tensorflow:libtensorflow_cc.so \
@@ -223,13 +222,16 @@ build() {
 }
 
 _package() {
+  local python_build_dir="$1"
+
   # install headers first
   install -d "${pkgdir}"/usr/include/tensorflow
-  cp -r bazel-bin/tensorflow/include/* "${pkgdir}"/usr/include/tensorflow/
+  # NOTE: the bazel target //tensorflow:install_headers does not work
+  # cp -r bazel-bin/tensorflow/include/* "${pkgdir}"/usr/include/tensorflow/
 
   # install python-version to get all extra headers
-  WHEEL_PACKAGE=$(find -L bazel-out -name "tensor*.whl")
-  python -m installer --destdir="$pkgdir" $WHEEL_PACKAGE
+  local wheel_package=$(find -L "$python_build_dir"/bazel-out -name "tensor*.whl")
+  python -m installer --destdir="$pkgdir" $wheel_package
 
   # move extra headers to correct location
   local _srch_path="${pkgdir}/usr/lib/python$(get_pyver)"/site-packages/tensorflow/include
@@ -259,25 +261,13 @@ _package() {
   rm bazel-bin/tensorflow/*.params
   cp -P bazel-bin/tensorflow/*.so* "${pkgdir}"/usr/lib
 
-  # C API headers
-  install -Dm644 tensorflow/c/c_api.h "${pkgdir}"/usr/include/tensorflow/tensorflow/c/c_api.h
-
   # license
   install -Dm644 LICENSE "${pkgdir}"/usr/share/licenses/${pkgname}/LICENSE
 }
 
 _python_package() {
-  WHEEL_PACKAGE=$(find -L bazel-ouot -name "tensor*.whl")
-  python -m installer --destdir="$pkgdir" $WHEEL_PACKAGE
-
-  # create symlinks to headers
-  local _srch_path="${pkgdir}/usr/lib/python$(get_pyver)"/site-packages/tensorflow/include/
-  check_dir "${_srch_path}"  # we need to quit on broken search paths
-  find "${_srch_path}" -maxdepth 1 -mindepth 1 -type d -print0 | while read -rd $'\0' _folder; do
-    rm -rf "${_folder}"
-    _smlink="$(basename "${_folder}")"
-    ln -s /usr/include/tensorflow/"${_smlink}" "${_srch_path}"
-  done
+  local wheel_package=$(find -L bazel-out -name "tensor*.whl")
+  python -m installer --destdir="$pkgdir" $wheel_package
 
   # tensorboard has been separated from upstream but they still install it with
   # tensorflow. I don't know what kind of sense that makes but we have to clean
@@ -294,7 +284,7 @@ package_tensorflow-rocm() {
   provides=(tensorflow)
 
   cd "${srcdir}"/tensorflow-${_pkgver}-rocm
-  _package
+  _package "${srcdir}"/python-tensorflow-${_pkgver}-rocm
 }
 
 package_tensorflow-opt-rocm() {
@@ -304,7 +294,7 @@ package_tensorflow-opt-rocm() {
   provides=(tensorflow tensorflow-rocm)
 
   cd "${srcdir}"/tensorflow-${_pkgver}-opt-rocm
-  _package
+  _package "${srcdir}"/python-tensorflow-${_pkgver}-opt-rocm
 }
 
 package_python-tensorflow-rocm() {
@@ -328,4 +318,3 @@ package_python-tensorflow-opt-rocm() {
 }
 
 # vim:set ts=2 sw=2 et:
-
