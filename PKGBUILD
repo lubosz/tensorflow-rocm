@@ -15,8 +15,8 @@ pkgname=()
 [ "$_build_no_opt" -eq 1 ] && pkgname+=(tensorflow-rocm python-tensorflow-rocm)
 [ "$_build_opt" -eq 1 ] && pkgname+=(tensorflow-opt-rocm python-tensorflow-opt-rocm)
 
-pkgver=2.17.0
-_pkgver=2.17.0
+pkgver=2.20.0
+_pkgver=2.20.0
 pkgrel=1
 pkgdesc="Library for computation using data flow graphs for scalable machine learning"
 url="https://www.tensorflow.org/"
@@ -32,7 +32,7 @@ source=("$pkgname-$pkgver.tar.gz::https://github.com/tensorflow/tensorflow/archi
         tensorflow-2.16.1-python-distutils-removal.patch
         tensorflow-numpy2.patch
         https://github.com/bazelbuild/bazel/releases/download/6.5.0/bazel_nojdk-6.5.0-linux-x86_64)
-sha512sums=('45061f075971cf2bc219a34b1cda2ee9851ba586e94046838e6e1fd26adcfb399d90e71e89a0f709d5282ff3be7cc3a82b81d62dce53db5010640ea41487a469'
+sha512sums=('e1e27c84491a28dc5b7deb181de0fbad27ddd58cdd7ee2f6815bebd26d7ff400a94efea52eb7da344702adcd9181a474a76dc9e94d2ad7d6511d261deffa0cf5'
             'e4c44d2f5314b83d8ed404e5ec14960ef8b7df0c1a2a3e826f913a02c901f9fd0326f9014a602121e0fdb2f928d1459f8b8180455491a1f937ce84e12f6a7d3e'
             'c4da1e72c90534a5a1f7625b819dc2529fa5b91c8423550ca4384ec243bddd026b977d5f81660114f054ce8f64cd90057f6482f89df4af443f35da1871202c1d'
             'd3789f0ecd354468f2e24d98501041430ae99c173320fa9c3eb02f225c08ed298fd1ad259e4ad9bb70b6ae89d84cd87460aaa720de3486d40b30777a8fe45453')
