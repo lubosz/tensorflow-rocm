@@ -94,6 +94,10 @@ prepare() {
   # thinks about which versions should be used anyway. ;) (FS#68772)
   sed -i -E "s/'([0-9a-z_-]+) .= [0-9].+[0-9]'/'\1'/" tensorflow-${_pkgver}/tensorflow/tools/pip_package/setup.py.tpl
 
+  # copy source for building python-tensorflow packages
+  cp -r tensorflow-${_pkgver} python-tensorflow-${_pkgver}-rocm
+  cp -r tensorflow-${_pkgver} python-tensorflow-${_pkgver}-opt-rocm
+
   # building the C/C++ interface requires more work but we cannot build tensorflow and python-tensorflow together
   # https://gitlab.archlinux.org/archlinux/packaging/packages/tensorflow/-/issues/25
 
@@ -162,38 +166,59 @@ prepare() {
 
 build() {
   if [ "$_build_no_opt" -eq 1 ]; then
-    echo "Building with rocm and without non-x86-64 optimizations"
+    echo "Building with Python and with rocm and without non-x86-64 optimizations"
+    cd "${srcdir}"/python-tensorflow-${_pkgver}-rocm
+    export CC_OPT_FLAGS="-march=x86-64"
+    export TF_NEED_CUDA=0
+    export TF_NEED_ROCM=1
+    ./configure
+    bazel \
+        build --config=rocm_clang --config=rocm_wheel \
+        ${BAZEL_ARGS[@]} \
+        //tensorflow/tools/pip_package:wheel --repo_env=WHEEL_NAME=tensorflow
+
+    echo "Building without Python and with rocm and without non-x86-64 optimizations"
     cd "${srcdir}"/tensorflow-${_pkgver}-rocm
     export CC_OPT_FLAGS="-march=x86-64"
     export TF_NEED_CUDA=0
     export TF_NEED_ROCM=1
     ./configure
     bazel \
-      build --config=rocm \
+      build --config=rocm_clang --config=rocm_wheel \
         ${BAZEL_ARGS[@]} \
         //tensorflow:libtensorflow.so \
         //tensorflow:libtensorflow_cc.so \
-        //tensorflow:libtensorflow_framework.so \
-        //tensorflow:install_headers \
-        //tensorflow/tools/pip_package:wheel --repo_env=WHEEL_NAME=tensorflow
+        //tensorflow:libtensorflow_framework.so
+        # //tensorflow:install_headers \
   fi
 
 
   if [ "$_build_opt" -eq 1 ]; then
-    echo "Building with rocm and with non-x86-64 optimizations"
+
+    echo "Building with Python and with rocm and with non-x86-64 optimizations"
+    cd "${srcdir}"/python-tensorflow-${_pkgver}-opt-rocm
+    export CC_OPT_FLAGS="-march=x86-64-v3 -O2"
+    export TF_NEED_CUDA=0
+    export TF_NEED_ROCM=1
+    ./configure
+    bazel \
+        build --config=opt --config=avx_linux --config=rocm_clang --config=rocm_wheel \
+        ${BAZEL_ARGS[@]} \
+        //tensorflow/tools/pip_package:wheel --repo_env=WHEEL_NAME=tensorflow
+
+    echo "Building without Python and with rocm and with non-x86-64 optimizations"
     cd "${srcdir}"/tensorflow-${_pkgver}-opt-rocm
     export CC_OPT_FLAGS="-march=x86-64-v3 -O2"
     export TF_NEED_CUDA=0
     export TF_NEED_ROCM=1
     ./configure
     bazel \
-      build --config=opt --config=avx_linux --config=rocm \
+      build --config=opt --config=avx_linux --config=rocm_clang --config=rocm_wheel \
         ${BAZEL_ARGS[@]} \
         //tensorflow:libtensorflow.so \
         //tensorflow:libtensorflow_cc.so \
         //tensorflow:libtensorflow_framework.so \
-        //tensorflow:install_headers \
-        //tensorflow/tools/pip_package:wheel --repo-env=WHEEL_NAME=tensorflow
+        # //tensorflow:install_headers \
   fi
 }
 
