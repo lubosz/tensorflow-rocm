@@ -34,14 +34,17 @@ source=("tensorflow-rocm::git+https://github.com/ROCmSoftwarePlatform/tensorflow
         tf-runtime-forward-decls.patch
         tensorflow-2.19.0-matmul-it-unused-result.patch
         protobuf-deps.patch
-        tensorflow-2.20.0-python-3.14.patch)
+        tensorflow-2.20.0-python-3.14.patch
+        tensorflow-2.20.0-StructuredTensor.patch
+)
 sha512sums=('b1f0127453661a24eb74315bfdcd456617f4e5b526805b27f1f9349220fb52c25811c0752ab0bad84b835fa8287ad3bc8f2cd65a683e80752289c560458bc3a3'
             'ca01422266ed741a7d2ec1fdaba8fed8aa1d1ca4d53e45345225403cb132dc56266fd799351e80aeb50df6f2f4e29e6e0dc9430aef882d749425e8521ba0a806'
             '27a07c1f5ab3898e049717e3f56498577c62840416b425e582a308d22112c0341b26a69d419daa0f80fac5be53cee122122b1b8200fc885ae5f7346b8e3ecb10'
             'b3ac22ede074decdb751adbc8f0324f4b729ffb4927fddcc67250e2f2a2812d2ed6ff515ed98cb3eaf5c1e4b755d6b780f5515181b6f10f046dbaa91e0eb1964'
             'e5856d277edcef6ab655e8b641f1ec8fe9823264221d687c9938bb00d5acee626a2a05b46cfd97fbad8551f270332ed09b73848bf9784137317fee47ad64c80e'
             '5a90a66ea6b78196aaa8852f90ac2af82cfac12b4f7eefa9b1e04ff0fbefd4fdc82f9705f77634efe76c55d5e1804cdfd736dd8ceb875d7ce2757552467a04dd'
-            'cfb1eced1f4b4534deddf14b73d45ae4f8104264ccada1a8854e0dbf7ef2a2f28e67930348211541630a102994ad258d55804359448d225863c4bd5c8762fff1')
+            'cfb1eced1f4b4534deddf14b73d45ae4f8104264ccada1a8854e0dbf7ef2a2f28e67930348211541630a102994ad258d55804359448d225863c4bd5c8762fff1'
+            'eb64f0dddabf505f7ce4efd852187d8b5a1be3dc797dbe26f21f1c4ece50d20f48d90434929212eb32d2c93668aec56a180cbb0331d88f0dc9ba4b0081060a2c')
 
 # consolidate common dependencies to prevent mishaps
 _common_py_depends=(python-termcolor python-astor python-gast python-numpy python-protobuf absl-py
@@ -83,6 +86,10 @@ prepare() {
   # Custom patch for python 3.14 support
   rm -f tensorflow-rocm/requirements_lock_3_14.txt # Make the patch don't fail on rebuilds
   patch -Np1 -i ../tensorflow-2.20.0-python-3.14.patch -d tensorflow-rocm
+
+  # Define StructuredTensor.FieldName outside the class
+  # https://github.com/tensorflow/tensorflow/pull/104620
+  patch -Np1 -i ../tensorflow-2.20.0-StructuredTensor.patch -d tensorflow-rocm
 
   # Custom patch for the @tf_runtime external dependency
   patch -Np1 -i ../tensorflow-2.19.0-tf-runtime-workspace.patch -d tensorflow-rocm
