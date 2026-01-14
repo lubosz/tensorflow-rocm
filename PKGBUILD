@@ -271,7 +271,7 @@ _python_package() {
 
   # tensorboard has been separated from upstream but they still install it with
   # tensorflow. I don't know what kind of sense that makes but we have to clean
-  # it out from this pacakge.
+  # it out from this package.
   rm -r "${pkgdir}"/usr/bin/tensorboard
 
   install -Dm644 LICENSE "${pkgdir}"/usr/share/licenses/${pkgname}/LICENSE
