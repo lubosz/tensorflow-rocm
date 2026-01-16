@@ -163,17 +163,17 @@ prepare() {
   export TF_PYTHON_VERSION=$(get_pyver)
   export PYTHON_BIN_PATH=/usr/bin/python$(get_pyver)
   export USE_DEFAULT_PYTHON_LIB_PATH=1
-
+  export TF_NEED_CUDA=0
+  export TF_NEED_ROCM=1
   export BAZEL_ARGS="-c opt --verbose_failures --config=verbose_logs --copt=-Wno-c23-extensions"
 }
 
 build() {
   if [ "$_build_no_opt" -eq 1 ]; then
     echo "Building with Python and with rocm and without non-x86-64 optimizations"
-    cd "${srcdir}"/python-tensorflow-${_pkgver}-rocm
     export CC_OPT_FLAGS="-march=x86-64"
-    export TF_NEED_CUDA=0
-    export TF_NEED_ROCM=1
+
+    cd "${srcdir}"/python-tensorflow-${_pkgver}-rocm
     ./configure
     bazel \
         build --config=rocm \
@@ -182,9 +182,6 @@ build() {
 
     echo "Building without Python and with rocm and without non-x86-64 optimizations"
     cd "${srcdir}"/tensorflow-${_pkgver}-rocm
-    export CC_OPT_FLAGS="-march=x86-64"
-    export TF_NEED_CUDA=0
-    export TF_NEED_ROCM=1
     ./configure
     bazel \
       build --config=rocm \
@@ -194,13 +191,11 @@ build() {
         //tensorflow:libtensorflow_framework.so
   fi
 
-
   if [ "$_build_opt" -eq 1 ]; then
     echo "Building with Python and with rocm and with non-x86-64 optimizations"
-    cd "${srcdir}"/python-tensorflow-${_pkgver}-opt-rocm
     export CC_OPT_FLAGS="-march=x86-64-v3 -O2"
-    export TF_NEED_CUDA=0
-    export TF_NEED_ROCM=1
+
+    cd "${srcdir}"/python-tensorflow-${_pkgver}-opt-rocm
     ./configure
     bazel \
         build --config=opt --config=avx_linux --config=rocm \
@@ -209,9 +204,6 @@ build() {
 
     echo "Building without Python and with rocm and with non-x86-64 optimizations"
     cd "${srcdir}"/tensorflow-${_pkgver}-opt-rocm
-    export CC_OPT_FLAGS="-march=x86-64-v3 -O2"
-    export TF_NEED_CUDA=0
-    export TF_NEED_ROCM=1
     ./configure
     bazel \
       build --config=opt --config=avx_linux --config=rocm \
