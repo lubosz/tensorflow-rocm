@@ -148,16 +148,6 @@ prepare() {
   export GCC_HOST_COMPILER_PATH=/usr/bin/gcc
   export HOST_C_COMPILER=/usr/bin/${CC}
   export HOST_CXX_COMPILER=/usr/bin/${CXX}
-  export TF_CUDA_CLANG=0  # Clang currently disabled because it's not compatible at the moment.
-  export CLANG_CUDA_COMPILER_PATH=/usr/lib/llvm20/bin/clang
-  export TF_CUDA_PATHS=/opt/cuda,/usr/lib,/usr
-  export TF_CUDA_VERSION=$(/opt/cuda/bin/nvcc --version | sed -n 's/^.*release \(.*\),.*/\1/p')
-  export TF_CUDNN_VERSION=$(sed -n 's/^#define CUDNN_MAJOR\s*\(.*\).*/\1/p' /usr/include/cudnn_version.h)
-  # https://github.com/tensorflow/tensorflow/blob/1ba2eb7b313c0c5001ee1683a3ec4fbae01105fd/third_party/gpus/cuda_configure.bzl#L411-L446
-  # according to the above, we should be specifying CUDA compute capabilities as 'sm_XX' or 'compute_XX' from now on
-  # add latest PTX for future compatibility
-  # Valid values can be discovered from nvcc --help
-  export TF_CUDA_COMPUTE_CAPABILITIES=sm_52,sm_53,sm_60,sm_61,sm_62,sm_70,sm_72,sm_75,sm_80,sm_86,sm_87,sm_89,sm_90,compute_90
   export TF_PYTHON_VERSION=$(get_pyver)
   export PYTHON_BIN_PATH=/usr/bin/python$(get_pyver)
   export USE_DEFAULT_PYTHON_LIB_PATH=1
