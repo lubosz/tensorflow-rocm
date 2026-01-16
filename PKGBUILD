@@ -240,7 +240,7 @@ _package() {
 }
 
 _python_package() {
-  WHEEL_PACKAGE=$(find -L bazel-ouot -name "tensor*.whl")
+  WHEEL_PACKAGE=$(find -L bazel-out -name "tensor*.whl")
   python -m installer --destdir="$pkgdir" $WHEEL_PACKAGE
 
   # tensorboard has been separated from upstream but they still install it with
