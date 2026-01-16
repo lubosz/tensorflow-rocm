@@ -20,7 +20,7 @@ _pkgver=2.20.0
 pkgrel=1
 pkgdesc="Library for computation using data flow graphs for scalable machine learning"
 url="https://www.tensorflow.org/"
-license=('APACHE')
+license=('Apache-2.0')
 arch=('x86_64')
 depends=('c-ares' 'pybind11' 'openssl' 'libpng' 'curl' 'giflib' 'icu' 'libjpeg-turbo' 'intel-oneapi-openmp'
          'intel-oneapi-compiler-shared-runtime-libs')
