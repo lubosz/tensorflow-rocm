@@ -84,6 +84,7 @@ prepare() {
   bazel --version
 
   # Custom patch for python 3.14 support
+  rm -f tensorflow-rocm/requirements_lock_3_14.txt # Make the patch don't fail on rebuilds
   patch -Np1 -i ../tensorflow-2.20.0-python-3.14.patch -d tensorflow-rocm
 
   # Define StructuredTensor.FieldName outside the class
@@ -232,7 +233,7 @@ _package() {
   install -Dm644 tensorflow_cc.pc "${pkgdir}"/usr/lib/pkgconfig/tensorflow_cc.pc
 
   # .so files
-  rm bazel-bin/tensorflow/*.params
+  rm -f bazel-bin/tensorflow/*.params
   cp -P bazel-bin/tensorflow/*.so* "${pkgdir}"/usr/lib
 
   # license
