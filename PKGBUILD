@@ -127,6 +127,8 @@ prepare() {
   export TF_NEED_NGRAPH=0
   export TF_NEED_IGNITE=0
   export TF_NEED_ROCM=1
+  export TF_ROCM_CLANG=1
+  export CLANG_ROCM_COMPILER_PATH=/usr/lib/llvm20/bin/clang
   # Uncomment this when you want to specify specific ROCM_ARCH(s)
   # Otherwise tensorflow will automatically detect your architecture
   # See: https://github.com/tensorflow/tensorflow/commit/c04822a49d669f2d74a566063852243d993e18b1
