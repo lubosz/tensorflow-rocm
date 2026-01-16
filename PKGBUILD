@@ -81,6 +81,7 @@ prepare() {
   bazel --version
 
   # Custom patch for python 3.14 support
+  rm -f tensorflow-rocm/requirements_lock_3_14.txt # Make the patch don't fail on rebuilds
   patch -Np1 -i ../tensorflow-2.20.0-python-3.14.patch -d tensorflow-rocm
 
   # Custom patch for the @tf_runtime external dependency
