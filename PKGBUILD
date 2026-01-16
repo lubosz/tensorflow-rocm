@@ -187,7 +187,7 @@ build() {
         //tensorflow:libtensorflow.so \
         //tensorflow:libtensorflow_cc.so \
         //tensorflow:libtensorflow_framework.so \
-        //tensorflow/tools/pip_package:wheel --repo-env=WHEEL_NAME=tensorflow
+        //tensorflow/tools/pip_package:wheel --repo_env=WHEEL_NAME=tensorflow
   fi
 }
 
