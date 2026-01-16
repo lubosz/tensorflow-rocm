@@ -28,14 +28,14 @@ makedepends=('bazel' 'python-numpy' 'rocm-hip-sdk' 'roctracer' 'rccl' 'git' 'mio
              'python-installer' 'python-setuptools' 'python-h5py' 'python-keras-applications'
              'python-keras-preprocessing' 'cython' 'patchelf' 'python-requests' 'libxcrypt-compat' 'clang20')
 optdepends=('tensorboard: Tensorflow visualization toolkit')
-source=("$pkgname-$pkgver.tar.gz::https://github.com/tensorflow/tensorflow/archive/v${_pkgver}.tar.gz"
+source=("tensorflow-rocm::git+https://github.com/ROCmSoftwarePlatform/tensorflow-upstream.git#tag=v${_pkgver}-rocm-enhanced"
         https://github.com/bazelbuild/bazel/releases/download/7.4.1/bazel_nojdk-7.4.1-linux-x86_64
         tensorflow-2.19.0-tf-runtime-workspace.patch
         tf-runtime-forward-decls.patch
         tensorflow-2.19.0-matmul-it-unused-result.patch
         protobuf-deps.patch
         tensorflow-2.20.0-python-3.14.patch)
-sha512sums=('e1e27c84491a28dc5b7deb181de0fbad27ddd58cdd7ee2f6815bebd26d7ff400a94efea52eb7da344702adcd9181a474a76dc9e94d2ad7d6511d261deffa0cf5'
+sha512sums=('b1f0127453661a24eb74315bfdcd456617f4e5b526805b27f1f9349220fb52c25811c0752ab0bad84b835fa8287ad3bc8f2cd65a683e80752289c560458bc3a3'
             'ca01422266ed741a7d2ec1fdaba8fed8aa1d1ca4d53e45345225403cb132dc56266fd799351e80aeb50df6f2f4e29e6e0dc9430aef882d749425e8521ba0a806'
             '27a07c1f5ab3898e049717e3f56498577c62840416b425e582a308d22112c0341b26a69d419daa0f80fac5be53cee122122b1b8200fc885ae5f7346b8e3ecb10'
             'b3ac22ede074decdb751adbc8f0324f4b729ffb4927fddcc67250e2f2a2812d2ed6ff515ed98cb3eaf5c1e4b755d6b780f5515181b6f10f046dbaa91e0eb1964'
@@ -81,18 +81,18 @@ prepare() {
   bazel --version
 
   # Custom patch for python 3.14 support
-  patch -Np1 -i ../tensorflow-2.20.0-python-3.14.patch -d tensorflow-${_pkgver}
+  patch -Np1 -i ../tensorflow-2.20.0-python-3.14.patch -d tensorflow-rocm
 
   # Custom patch for the @tf_runtime external dependency
-  patch -Np1 -i ../tensorflow-2.19.0-tf-runtime-workspace.patch -d tensorflow-${_pkgver}
-  cp tf-runtime-forward-decls.patch tensorflow-${_pkgver}/third_party/tf_runtime/forward_decls.patch
+  patch -Np1 -i ../tensorflow-2.19.0-tf-runtime-workspace.patch -d tensorflow-rocm
+  cp tf-runtime-forward-decls.patch tensorflow-rocm/third_party/tf_runtime/forward_decls.patch
 
   # Custom patch for error: ignoring return value of function declared with 'nodiscard' attribute [-Werror,-Wunused-result]
-  patch -Np1 -i ../tensorflow-2.19.0-matmul-it-unused-result.patch -d tensorflow-${_pkgver}
+  patch -Np1 -i ../tensorflow-2.19.0-matmul-it-unused-result.patch -d tensorflow-rocm
 
   # Get rid of hardcoded versions. Not like we ever cared about what upstream
   # thinks about which versions should be used anyway. ;) (FS#68772)
-  sed -i -E "s/'([0-9a-z_-]+) .= [0-9].+[0-9]'/'\1'/" tensorflow-${_pkgver}/tensorflow/tools/pip_package/setup.py.tpl
+  sed -i -E "s/'([0-9a-z_-]+) .= [0-9].+[0-9]'/'\1'/" tensorflow-rocm/tensorflow/tools/pip_package/setup.py.tpl
 
   # Update hardcoded clang version to the most ancient we can find
   sed -i 's#/usr/lib/llvm-18/bin/clang#/usr/lib/llvm20/bin/clang#g' tensorflow-rocm/.bazelrc
@@ -101,14 +101,14 @@ prepare() {
   # https://gitlab.archlinux.org/archlinux/packaging/packages/tensorflow/-/issues/25
 
   # Disable PYWRAP_RULES to let the libtensorflow.so etc. targets be found
-  sed -i '/build --repo_env=USE_PYWRAP_RULES=True/d' tensorflow-${_pkgver}/.bazelrc tensorflow-${_pkgver}/third_party/xla/tensorflow.bazelrc
+  sed -i '/build --repo_env=USE_PYWRAP_RULES=True/d' tensorflow-rocm/.bazelrc tensorflow-rocm/third_party/xla/tensorflow.bazelrc
 
   # Patch protobuf dependencies in bazel
   # https://gitlab.archlinux.org/archlinux/packaging/packages/tensorflow/-/issues/24#note_334439
-  patch -Np1 -i ../protobuf-deps.patch -d tensorflow-${_pkgver}
+  patch -Np1 -i ../protobuf-deps.patch -d tensorflow-rocm
 
-  cp -r tensorflow-${_pkgver} tensorflow-${_pkgver}-rocm
-  cp -r tensorflow-${_pkgver} tensorflow-${_pkgver}-opt-rocm
+  cp -r tensorflow-rocm tensorflow-${_pkgver}-rocm
+  cp -r tensorflow-rocm tensorflow-${_pkgver}-opt-rocm
 
   # These environment variables influence the behavior of the configure call below.
   export TF_NEED_JEMALLOC=1
