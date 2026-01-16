@@ -17,7 +17,7 @@ pkgname=()
 
 pkgver=2.20.0
 _pkgver=2.20.0
-pkgrel=1
+pkgrel=2
 pkgdesc="Library for computation using data flow graphs for scalable machine learning"
 url="https://www.tensorflow.org/"
 license=('Apache-2.0')
