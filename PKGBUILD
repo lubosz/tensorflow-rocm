@@ -168,11 +168,11 @@ prepare() {
   export NCCL_INSTALL_PATH=/usr
   # Does tensorflow really need the compiler overridden in 5 places? Yes.
   # https://github.com/tensorflow/tensorflow/issues/60577
-  export CC=gcc
-  export CXX=g++
-  export GCC_HOST_COMPILER_PATH=/usr/bin/gcc
-  export HOST_C_COMPILER=/usr/bin/${CC}
-  export HOST_CXX_COMPILER=/usr/bin/${CXX}
+  export CC=/usr/lib/llvm20/bin/clang
+  export CXX=/usr/lib/llvm20/bin/clang++
+  export GCC_HOST_COMPILER_PATH=/usr/lib/llvm20/bin/clang
+  export HOST_C_COMPILER=/usr/lib/llvm20/bin/clang
+  export HOST_CXX_COMPILER=/usr/lib/llvm20/bin/clang++
   export TF_PYTHON_VERSION=$(get_pyver)
   export PYTHON_BIN_PATH=/usr/bin/python$(get_pyver)
   export USE_DEFAULT_PYTHON_LIB_PATH=1
