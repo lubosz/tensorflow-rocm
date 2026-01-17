@@ -24,10 +24,10 @@ license=('Apache-2.0')
 arch=('x86_64')
 depends=('c-ares' 'pybind11' 'openssl' 'libpng' 'curl' 'giflib' 'icu' 'libjpeg-turbo' 'intel-oneapi-openmp'
          'intel-oneapi-compiler-shared-runtime-libs')
-makedepends=('bazel' 'python-numpy' 'rocm-hip-sdk' 'roctracer' 'rccl' 'git' 'miopen' 'python-wheel' 'openmp'
-             'python-installer' 'python-setuptools' 'python-h5py' 'python-keras-applications'
-             'python-keras-preprocessing' 'cython' 'patchelf' 'python-requests' 'libxcrypt-compat' 'clang20'
-             'rocm-toolchain')
+makedepends=('bazel' 'git' 'openmp'
+             'python-installer' 'patchelf' 'libxcrypt-compat' 'clang20' 'lld'
+             # ROCm specific
+             'rocm-hip-sdk' 'roctracer' 'rccl' 'rocm-toolchain')
 optdepends=('tensorboard: Tensorflow visualization toolkit')
 source=("tensorflow-rocm::git+https://github.com/ROCmSoftwarePlatform/tensorflow-upstream.git#tag=v${_pkgver}-rocm-enhanced"
         https://github.com/bazelbuild/bazel/releases/download/7.4.1/bazel_nojdk-7.4.1-linux-x86_64
