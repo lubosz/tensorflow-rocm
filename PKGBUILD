@@ -296,7 +296,7 @@ package_python-tensorflow-rocm() {
   conflicts=(python-tensorflow)
   provides=(python-tensorflow)
 
-  cd "${srcdir}"/tensorflow-${_pkgver}-rocm
+  cd "${srcdir}"/python-tensorflow-${_pkgver}-rocm
   _python_package
 }
 
@@ -306,7 +306,7 @@ package_python-tensorflow-opt-rocm() {
   conflicts=(python-tensorflow)
   provides=(python-tensorflow python-tensorflow-rocm)
 
-  cd "${srcdir}"/tensorflow-${_pkgver}-opt-rocm
+  cd "${srcdir}"/python-tensorflow-${_pkgver}-opt-rocm
   _python_package
 }
 
