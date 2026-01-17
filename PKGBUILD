@@ -26,7 +26,8 @@ depends=('c-ares' 'pybind11' 'openssl' 'libpng' 'curl' 'giflib' 'icu' 'libjpeg-t
          'intel-oneapi-compiler-shared-runtime-libs')
 makedepends=('bazel' 'python-numpy' 'rocm-hip-sdk' 'roctracer' 'rccl' 'git' 'miopen' 'python-wheel' 'openmp'
              'python-installer' 'python-setuptools' 'python-h5py' 'python-keras-applications'
-             'python-keras-preprocessing' 'cython' 'patchelf' 'python-requests' 'libxcrypt-compat' 'clang20')
+             'python-keras-preprocessing' 'cython' 'patchelf' 'python-requests' 'libxcrypt-compat' 'clang20'
+             'rocm-toolchain')
 optdepends=('tensorboard: Tensorflow visualization toolkit')
 source=("tensorflow-rocm::git+https://github.com/ROCmSoftwarePlatform/tensorflow-upstream.git#tag=v${_pkgver}-rocm-enhanced"
         https://github.com/bazelbuild/bazel/releases/download/7.4.1/bazel_nojdk-7.4.1-linux-x86_64
@@ -141,10 +142,22 @@ prepare() {
   export TF_NEED_ROCM=1
   export TF_ROCM_CLANG=1
   export CLANG_ROCM_COMPILER_PATH=/usr/lib/llvm20/bin/clang
+
+  # ROCm target detection crashes when building with pkgctl, since rocm_agent_enumerator returns nothing.
+  # So TF_ROCM_AMDGPU_TARGETS must be set in that case.
+  local enumerated_rocm_target=$(rocm_agent_enumerator)
+  if [ -n "$enumerated_rocm_target" ]; then
+    echo "Tensorflow will build only for the auto detected local '${enumerated_rocm_target}' ROCm target."
+  else
+    export TF_ROCM_AMDGPU_TARGETS="$(rocm-supported-gfx -d ',')"
+    echo "Building for all supported rocm-supported-gfx targets: '${TF_ROCM_AMDGPU_TARGETS}'"
+  fi
+
   # Uncomment this when you want to specify specific ROCM_ARCH(s)
-  # Otherwise tensorflow will automatically detect your architecture
+  # Otherwise tensorflow will automatically detect your architecture.
   # See: https://github.com/tensorflow/tensorflow/commit/c04822a49d669f2d74a566063852243d993e18b1
   # export TF_ROCM_AMDGPU_TARGETS=gfx803,gfx900,gfx906,gfx908,gfx90a,gfx1030,gfx1100,gfx1101,gfx1102
+
   export TF_NEED_CLANG=1
   export CLANG_COMPILER_PATH=/usr/lib/llvm20/bin/clang
   # See https://github.com/tensorflow/tensorflow/blob/master/third_party/systemlibs/syslibs_configure.bzl

@@ -24,6 +24,7 @@ pkgbase = tensorflow-rocm
 	makedepends = python-requests
 	makedepends = libxcrypt-compat
 	makedepends = clang20
+	makedepends = rocm-toolchain
 	depends = c-ares
 	depends = pybind11
 	depends = openssl
